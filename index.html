@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVIDIA GPU 33 — Inside the DGX Spark</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-card: #0d1117;
+            --bg-code: #161b22;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #76B900;
+            --accent-dim: #76B90044;
+            --accent-glow: #76B90033;
+            --border: #21262d;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', sans-serif;
+            --max-width: 900px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 17px;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .series-label {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 .accent {
+            color: var(--accent);
+        }
+
+        .hero .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 2rem;
+        }
+
+        /* ── Tag Pills ── */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+            white-space: nowrap;
+        }
+
+        /* ── Pipeline Flow Bar ── */
+        .pipeline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            max-width: var(--max-width);
+        }
+
+        .pipeline-step {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.3rem 0.7rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .pipeline-arrow {
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        /* ── Slides ── */
+        .slide {
+            min-height: 100vh;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide-number {
+            font-family: var(--font-display);
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--accent-dim);
+            position: absolute;
+            top: 2rem;
+            right: 1.5rem;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .slide h2 {
+            font-family: var(--font-display);
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            line-height: 1.25;
+        }
+
+        .slide h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .slide p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .slide p strong {
+            color: var(--text-primary);
+        }
+
+        .slide ul, .slide ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .slide li {
+            margin-bottom: 0.4rem;
+        }
+
+        .slide li strong {
+            color: var(--text-primary);
+        }
+
+        /* ── Code Blocks ── */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1.25rem 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+            padding: 0.4rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #c9d1d9;
+        }
+
+        /* Syntax highlighting (manual) */
+        .kw { color: #ff7b72; }
+        .fn { color: #d2a8ff; }
+        .str { color: #a5d6ff; }
+        .cm { color: #8b949e; font-style: italic; }
+        .num { color: #79c0ff; }
+        .type { color: #ffa657; }
+        .dir { color: #ff7b72; }
+        .mac { color: #ffa657; }
+
+        /* ── Tables ── */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 1.25rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: var(--bg-code);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-display);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) td {
+            background: rgba(13, 17, 23, 0.5);
+        }
+
+        /* ── Diagrams ── */
+        .diagram-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-box {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .diagram-box.accent {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+        }
+
+        .diagram-box.dim {
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+
+        .diagram-arrow {
+            color: var(--accent);
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        /* Vertical flow diagrams */
+        .diagram-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-vertical .diagram-arrow {
+            font-size: 1.1rem;
+        }
+
+        /* Nested hierarchy diagram */
+        .hierarchy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .hierarchy-level {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .hierarchy-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .hierarchy-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .hierarchy-item {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .hierarchy-item.accent {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+        }
+
+        /* Grid diagram */
+        .diagram-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-grid.cols-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .diagram-grid.cols-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .diagram-panel {
+            padding: 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .diagram-panel.accent-border {
+            border-left: 3px solid var(--accent);
+        }
+
+        .diagram-panel h4 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .diagram-panel p, .diagram-panel ul {
+            font-size: 0.85rem;
+        }
+
+        /* ── Callout Boxes ── */
+        .callout {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+        }
+
+        .callout p {
+            margin-bottom: 0;
+        }
+
+        .callout .callout-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.3rem;
+        }
+
+        /* ── Tier Visual ── */
+        .tier-visual {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .tier-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tier-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 90px;
+            text-align: right;
+        }
+
+        .tier-fill {
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            white-space: nowrap;
+            transition: width 0.6s ease;
+        }
+
+        .tier-cost {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            min-width: 70px;
+        }
+
+        /* ── Contents list ── */
+        .contents-list {
+            list-style: none;
+            padding-left: 0;
+            counter-reset: contents;
+        }
+
+        .contents-list li {
+            counter-increment: contents;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .contents-list li:last-child {
+            border-bottom: none;
+        }
+
+        .contents-list li::before {
+            content: counter(contents, decimal-leading-zero);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 2rem;
+        }
+
+        .contents-list a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .contents-list a:hover {
+            color: var(--accent);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .slide {
+                padding: 3rem 1rem;
+                min-height: auto;
+            }
+
+            .slide-number {
+                font-size: 3rem;
+                top: 1.5rem;
+                right: 1rem;
+            }
+
+            .slide h2 {
+                font-size: 1.5rem;
+            }
+
+            .diagram-grid.cols-2,
+            .diagram-grid.cols-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .pipeline {
+                gap: 0.15rem;
+            }
+
+            .pipeline-step {
+                font-size: 0.6rem;
+                padding: 0.2rem 0.4rem;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            table {
+                font-size: 0.78rem;
+            }
+
+            .tier-label {
+                min-width: 60px;
+                font-size: 0.65rem;
+            }
+
+            .tier-fill {
+                font-size: 0.6rem;
+                height: 26px;
+            }
+        }
+
+        /* ── Interactive controls (added for Local LLM series) ── */
+        .control-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin: 1.25rem 0;
+        }
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .control-row label {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 180px;
+        }
+        .control-row input[type="range"] {
+            flex: 1;
+            min-width: 160px;
+            accent-color: var(--accent);
+        }
+        .control-row input[type="number"],
+        .control-row select {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 4px;
+            padding: 0.3rem 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .control-row .val {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 80px;
+            text-align: right;
+        }
+        .btn {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 0.4rem 0.9rem;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .btn:hover { background: rgba(118, 185, 0, 0.2); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn.secondary {
+            background: var(--bg-code);
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+        .result-box {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            margin-top: 0.75rem;
+        }
+        .result-box .line-label { color: var(--text-secondary); }
+        .result-box .line-val   { color: var(--accent); font-weight: 600; }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .metric {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.6rem 0.8rem;
+            text-align: center;
+        }
+        .metric .metric-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .metric .metric-value {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+
+        /* Canvas / SVG containers */
+        .canvas-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+        }
+        .canvas-wrap canvas,
+        .canvas-wrap svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+
+        /* Small inline badge */
+        .badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            vertical-align: middle;
+            margin-left: 0.3rem;
+        }
+        .badge.ok    { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .badge.warn  { border-color: #ffa657; color: #ffa657; background: rgba(255,166,87,0.08); }
+        .badge.bad   { border-color: #ff7b72; color: #ff7b72; background: rgba(255,123,114,0.08); }
+
+    </style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="series-label">NVIDIA GPU Architectures Series — Presentation 33</div>
+    <h1>Inside the <span class="accent">DGX Spark</span> &mdash; GB10, 128 GB Unified, 1 PFLOP on Your Desk</h1>
+    <p class="subtitle">A low-level look at NVIDIA's personal AI workstation. The GB10 superchip pairs a 20-core ARM CPU with a Blackwell GPU through NVLink-C2C, exposes 128 GB of LPDDR5x as one coherent memory pool, and delivers ~1 PFLOP of FP4 in a 170 W desktop box. Block diagram, board layout, ports, cooling, and the silicon decisions that define what the box can do.</p>
+
+    <div class="tags">
+        <span class="tag">DGX Spark</span><span class="tag">GB10</span>
+        <span class="tag">Grace</span><span class="tag">Blackwell</span>
+        <span class="tag">Cortex-X925</span><span class="tag">Cortex-A725</span>
+        <span class="tag">LPDDR5x</span><span class="tag">NVLink-C2C</span>
+        <span class="tag">FP4</span><span class="tag">ConnectX-7</span>
+    </div>
+
+    <div class="pipeline">
+        <span class="pipeline-step">CPU</span>
+        <span class="pipeline-arrow">&harr;</span>
+        <span class="pipeline-step">C2C</span>
+        <span class="pipeline-arrow">&harr;</span>
+        <span class="pipeline-step">GPU</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Unified LPDDR5x</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">200 GbE</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">NVMe</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Display</span>
+    </div>
+</header>
+
+<section class="slide" id="slide-00">
+    <div class="slide-number">00</div>
+    <h2>Topics We'll Cover</h2>
+    <ul class="contents-list">
+        <li><a href="#slide-01">DGX Spark at a Glance</a></li>
+        <li><a href="#slide-02">The GB10 Superchip &mdash; Block Diagram</a></li>
+        <li><a href="#slide-03">The CPU &mdash; 20 Cortex-X925 / A725 Cores</a></li>
+        <li><a href="#slide-04">The GPU &mdash; A Trimmed-Down Blackwell</a></li>
+        <li><a href="#slide-05">NVLink-C2C In-Package</a></li>
+        <li><a href="#slide-06">128 GB Unified LPDDR5x &mdash; The Headline Feature</a></li>
+        <li><a href="#slide-07">Storage, Display, and IO</a></li>
+        <li><a href="#slide-08">200 GbE ConnectX-7 &mdash; The Pairing Port</a></li>
+        <li><a href="#slide-09">Power Delivery, Cooling, Form Factor</a></li>
+        <li><a href="#slide-10">Tensor Core Throughput &mdash; What 1 PFLOP Buys</a></li>
+        <li><a href="#slide-11">Spark vs Other Workstations &mdash; Quick Look</a></li>
+        <li><a href="#slide-12">Interactive: Spark Capability Calculator</a></li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-01">
+    <div class="slide-number">01</div>
+    <h2>DGX Spark at a Glance</h2>
+    <p>Announced as <strong>Project DIGITS</strong> at CES 2025, then renamed <strong>DGX Spark</strong> by mid-2025 and shipped in volume from Q3 2025. Spark is NVIDIA's first <strong>personal AI workstation</strong> &mdash; the same software stack as DGX H100/B200 in a desktop chassis the size of a Mac Mini, at consumer prices.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Spec</th><th>Value</th></tr></thead>
+            <tbody>
+                <tr><td>SoC</td><td><strong>NVIDIA GB10</strong> (Grace + Blackwell on one package)</td></tr>
+                <tr><td>CPU</td><td>20 ARM cores: 10&times; Cortex-X925 (perf) + 10&times; Cortex-A725 (efficiency)</td></tr>
+                <tr><td>GPU</td><td>Blackwell-class with 5th-gen tensor cores supporting MX-FP4 / MX-FP6 / FP8</td></tr>
+                <tr><td>Memory</td><td><strong>128 GB unified LPDDR5x at ~273 GB/s</strong></td></tr>
+                <tr><td>Peak compute</td><td>~1 PFLOP sparse FP4 / ~500 TFLOPS dense FP4 / ~250 TFLOPS FP8</td></tr>
+                <tr><td>Storage</td><td>1 or 4 TB NVMe Gen5 SSD (slot, user-replaceable on some SKUs)</td></tr>
+                <tr><td>Networking</td><td>1&times; ConnectX-7 200 GbE port (RJ-45 not used; QSFP28 / OCP NIC variant) + Wi-Fi 7 + 1 GbE management</td></tr>
+                <tr><td>Display</td><td>1&times; HDMI 2.1, 1&times; DisplayPort 2.1 (some SKUs swap for USB-C DP-Alt)</td></tr>
+                <tr><td>USB</td><td>4&times; USB4 / Thunderbolt-class</td></tr>
+                <tr><td>System TDP</td><td>~170 W</td></tr>
+                <tr><td>Chassis</td><td>~150&times;150&times;50 mm (sub-1 L), ~1.4 kg</td></tr>
+                <tr><td>Price</td><td>~$3,000&ndash;$4,500 depending on SSD</td></tr>
+                <tr><td>OS</td><td>DGX OS (Ubuntu-based ARM64)</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="slide" id="slide-02">
+    <div class="slide-number">02</div>
+    <h2>The GB10 Superchip &mdash; Block Diagram</h2>
+    <p>Unlike the rack-scale GB200 (1 Grace + 2 B200 GPUs as separate dies on one board), <strong>GB10 puts everything on one SoC</strong>: CPU, GPU, NVLink-C2C, NPU helper, and IO &mdash; in a single package on TSMC 4NP.</p>
+
+    <div class="hierarchy">
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Package</div>
+            <div class="hierarchy-items"><span class="hierarchy-item accent">GB10 SoC &mdash; ~250 mm&sup2;, TSMC 4NP, ARM Holdings + NVIDIA collaboration</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">CPU complex</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">10&times; Cortex-X925</span><span class="hierarchy-item">10&times; Cortex-A725</span><span class="hierarchy-item">L3 mesh (~24 MB)</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">GPU</div>
+            <div class="hierarchy-items"><span class="hierarchy-item accent">Blackwell SM array (~1 PFLOP sparse FP4)</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">C2C</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">NVLink-C2C in-package &mdash; coherent CPU&harr;GPU</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Memory controller</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">Unified LPDDR5x at ~273 GB/s &mdash; serves both CPU and GPU</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">IO</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">PCIe 5 root complex</span><span class="hierarchy-item">USB4</span><span class="hierarchy-item">DP/HDMI</span></div>
+        </div>
+    </div>
+
+    <p>Heritage: GB10 is to DGX Spark what Apple's M-series is to a Mac Mini &mdash; a CPU+GPU+memory SoC purpose-built for the form factor. NVIDIA partnered with <strong>MediaTek</strong> on the SoC platform; the CPU complex is licensed ARM IP, while the GPU is NVIDIA-designed Blackwell.</p>
+</section>
+
+<section class="slide" id="slide-03">
+    <div class="slide-number">03</div>
+    <h2>The CPU &mdash; 20 Cortex-X925 / A725 Cores</h2>
+    <p>GB10's CPU complex is a <strong>2&times; 10-core hybrid</strong>: 10 perf cores plus 10 efficiency cores, all coherent. ARM v9.2-a, SVE2 vectors, the latest Neoverse / Cortex generation circa 2024.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Cortex-X925 (perf cores)</h4>
+            <ul>
+                <li>10 cores &mdash; the &quot;big&quot; cluster</li>
+                <li>8-wide decode, 12-wide issue, deep OoO</li>
+                <li>2&times; 128-bit SVE2 SIMD</li>
+                <li>~1 MB L2 per core</li>
+                <li>Aggressive boost clocks ~3.6 GHz</li>
+                <li>Single-thread is M3 Pro-class</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Cortex-A725 (efficiency cores)</h4>
+            <ul>
+                <li>10 cores &mdash; the &quot;little&quot; cluster</li>
+                <li>4-wide decode, in-order or shallow-OoO</li>
+                <li>1&times; 128-bit SVE2 SIMD</li>
+                <li>~512 KB L2 per core</li>
+                <li>Up to ~2.5 GHz</li>
+                <li>Background services, multi-threaded data prep</li>
+            </ul>
+        </div>
+    </div>
+
+    <p>Why hybrid: a workstation needs single-thread responsiveness (X925) but also benefits from many threads for data preprocessing, JIT compilation, container builds (A725). Linux handles scheduling via <strong>EAS</strong> (Energy-Aware Scheduling) on Spark out-of-the-box.</p>
+</section>
+
+<section class="slide" id="slide-04">
+    <div class="slide-number">04</div>
+    <h2>The GPU &mdash; A Trimmed-Down Blackwell</h2>
+    <p>The Spark GPU is the <strong>same Blackwell architecture</strong> as B200 / RTX 5090 but with much fewer SMs, sized for the 170 W system envelope.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Property</th><th>DGX Spark GPU</th><th>RTX 5090 (reference)</th><th>B200 (reference)</th></tr></thead>
+            <tbody>
+                <tr><td>SMs (estimated)</td><td>~70</td><td>170</td><td>~256 (2 dies)</td></tr>
+                <tr><td>FP4 sparse TFLOPS</td><td>~1000</td><td>~3000</td><td>18000</td></tr>
+                <tr><td>FP8 dense TFLOPS</td><td>~250</td><td>~1500</td><td>4500</td></tr>
+                <tr><td>BF16 dense TFLOPS</td><td>~125</td><td>~750</td><td>2250</td></tr>
+                <tr><td>FP64 TFLOPS</td><td>~2</td><td>~3</td><td>40</td></tr>
+                <tr><td>Memory BW</td><td>273 GB/s (LPDDR5x)</td><td>1792 GB/s (GDDR7)</td><td>8 TB/s (HBM3e)</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p>Same CUDA compute capability as B200 (sm_100), so kernels compile once and run on both. <strong>FP4 enabled</strong> (unlike Ada consumer dies where it was fused off). The Spark GPU is best understood as &quot;a quarter of an RTX 5090 with 4&times; the memory&quot; &mdash; very different bandwidth/capacity profile.</p>
+</section>
+
+<section class="slide" id="slide-05">
+    <div class="slide-number">05</div>
+    <h2>NVLink-C2C In-Package</h2>
+    <p>On rack-scale GB200, NVLink-C2C runs across the substrate between Grace and Blackwell dies at <strong>900 GB/s</strong>. On GB10 the link is <strong>internal to the SoC</strong> &mdash; physically just a wide on-die fabric &mdash; so the headline number is moot. What matters is that <strong>CPU and GPU share the memory controller and address space</strong>; there's no copy across an external link.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Software model</h4>
+            <p>The GPU sees system pages directly. <code>cudaMallocManaged()</code> just succeeds &mdash; no real migration cost because there's no other place to migrate to. <code>cudaMemPrefetchAsync()</code> is mostly a hint rather than a copy.</p>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>What it costs</h4>
+            <p>The unified memory means CPU bursts and GPU streaming workloads contend for the same 273 GB/s bus. A heavy data-prep loop on the CPU can starve a decode-bound LLM. Pin tasks to NUMA-style core groups on Spark using <code>numactl --cpunodebind</code>.</p>
+        </div>
+    </div>
+</section>
+
+<section class="slide" id="slide-06">
+    <div class="slide-number">06</div>
+    <h2>128 GB Unified LPDDR5x &mdash; The Headline Feature</h2>
+    <p>Spark's 128 GB is the largest unified memory pool you can buy in a desktop AI machine in 2026. For comparison: <strong>Apple Mac Studio M3 Ultra</strong> tops out at 192 GB but only ~819 GB/s; <strong>RTX 5090</strong> has 32 GB at 1.79 TB/s; <strong>RTX PRO 6000 Blackwell</strong> has 96 GB at 1.79 TB/s but costs much more.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Memory characteristic</th><th>Spark</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Capacity</td><td><strong>128 GB</strong> (single SKU at launch)</td><td>Soldered LPDDR5x, not user-upgradable</td></tr>
+                <tr><td>Bandwidth</td><td>~273 GB/s</td><td>~17% of an RTX 5090, ~3.4% of a B200</td></tr>
+                <tr><td>Pin rate</td><td>~9.6 Gbps/pin LPDDR5x</td><td>32-bit channels, multi-channel</td></tr>
+                <tr><td>ECC</td><td>On-die ECC (LPDDR5x ECC mode)</td><td>Side-band ECC not available on LPDDR</td></tr>
+                <tr><td>Voltage</td><td>1.05 V</td><td>Same spec as Grace 480 GB on GB200</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Bandwidth reality check</div>
+        <p>273 GB/s is decode-bound for any LLM running locally. A 70 B model in MX-FP4 (35 GB weights) decodes at <strong>~7 tok/s</strong> single-stream peak (273 / 35). A 405 B model in MX-FP4 (~200 GB &mdash; doesn't fit). A 70 B in FP8 (~70 GB) decodes at ~3.5 tok/s. The big-memory advantage is that the model <em>fits</em>, not that it's fast.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-07">
+    <div class="slide-number">07</div>
+    <h2>Storage, Display, and IO</h2>
+    <ul>
+        <li><strong>NVMe Gen5</strong>: 1 TB or 4 TB SKU; M.2 2280 slot (user-replaceable on the high-tier SKU). Sustained ~12 GB/s read.</li>
+        <li><strong>HDMI 2.1</strong>: up to 8K60 / 4K240 with DSC. Single port on most Spark configs.</li>
+        <li><strong>DisplayPort 2.1</strong> (UHBR20): up to 16K60 with DSC. One port (some SKUs swap for USB-C DP-Alt).</li>
+        <li><strong>USB4 / Thunderbolt-class</strong>: 4 ports on the front, 40 Gb/s each. eGPU not officially supported but technically possible (CUDA driver enumerates external Blackwell parts).</li>
+        <li><strong>Wi-Fi 7</strong>: integrated 6 GHz radio for headless deployment.</li>
+        <li><strong>1 GbE management port</strong>: for BMC / IPMI-equivalent.</li>
+        <li><strong>3.5 mm audio</strong>: combo jack.</li>
+        <li><strong>SD card</strong>: full-size SD UHS-II on some SKUs (legacy from DIGITS prototypes).</li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-08">
+    <div class="slide-number">08</div>
+    <h2>200 GbE ConnectX-7 &mdash; The Pairing Port</h2>
+    <p>The most unusual port on Spark is the <strong>QSFP28 ConnectX-7 200 GbE port</strong>, intended for <strong>two-Spark pairing</strong>. NVIDIA's reference scenario is direct attach: two Spark units connected by a 1-3 m DAC or AOC cable, behaving like a tiny 256 GB / 2-PFLOP cluster.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>What 200 GbE buys you</h4>
+            <ul>
+                <li>~25 GB/s/dir, RDMA-capable, GPUDirect supported</li>
+                <li>Roughly NVLink-3 era bandwidth between two chassis</li>
+                <li>Enough for pipeline parallelism across two GPUs</li>
+                <li>Not enough for tensor parallel of large layers (which want NVLink 5 = 1.8 TB/s)</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Software</h4>
+            <p>NVIDIA ships <strong>NCCL</strong> with RoCE/GPUDirect support out of the box on Spark. <strong>vLLM Pipeline Parallel</strong> is the recommended pattern for two-Spark serving 200 B+ models. <strong>NeMo / Megatron</strong> can train on a Spark pair with PP=2 + DP for tiny micro-batches.</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Why not Ethernet RJ-45?</div>
+        <p>QSFP28 lets the same port carry InfiniBand, Ethernet, or RoCE depending on the cable plugged in. A single Spark connected to a Quantum-2 switch becomes a node in a small InfiniBand cluster. NVIDIA's intent: bottom of the same software stack as their datacenter products.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-09">
+    <div class="slide-number">09</div>
+    <h2>Power Delivery, Cooling, Form Factor</h2>
+    <ul>
+        <li><strong>System TDP ~170 W.</strong> External 240 W power brick (USB-C PD on some SKUs, barrel jack on others).</li>
+        <li><strong>VRM</strong>: ~6-phase digital PWM for the GB10 core rail (target 0.85&ndash;1.0 V at hundreds of amps), plus separate VDDQ-LPDDR5x (1.05 V) and VDDIO (0.65 V) rails.</li>
+        <li><strong>Cooling</strong>: small vapour chamber + axial fan. Quiet at idle (&lt; 30 dBA), noticeable under sustained load (~45 dBA). The chassis is <em>tight</em> on thermals; long inference jobs throttle slightly after 10-15 minutes.</li>
+        <li><strong>Acoustic</strong>: typical fan profile is conservative for office use; a sustained 70 B inference run shifts to a higher RPM step.</li>
+        <li><strong>Chassis</strong>: machined aluminium top with magnetic dust filters. ~1.4 kg, sub-1 litre. Stackable with rubber feet.</li>
+        <li><strong>VESA mount</strong>: optional bracket for behind-monitor deployment.</li>
+    </ul>
+
+    <p>Compared to: a single RTX 5090 PC pulls 700-900 W at the wall under load &mdash; <strong>4-5&times; Spark's power draw</strong>. For office or small-lab deployment, that's the difference between &quot;just plug it in&quot; and &quot;dedicated 20 A circuit&quot;.</p>
+</section>
+
+<section class="slide" id="slide-10">
+    <div class="slide-number">10</div>
+    <h2>Tensor Core Throughput &mdash; What 1 PFLOP Buys</h2>
+    <p>Spark's GPU has full Blackwell tensor core support. The 1 PFLOP figure is the headline (sparse FP4); dense FP4 is half that, FP8 is a quarter, BF16 is an eighth, FP32/TF32 is a sixteenth.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Operation</th><th>DGX Spark</th><th>What it enables</th></tr></thead>
+            <tbody>
+                <tr><td>Sparse MX-FP4</td><td>~1000 TFLOPS</td><td>Headline number; requires structured sparsity in the model.</td></tr>
+                <tr><td>Dense MX-FP4</td><td>~500 TFLOPS</td><td>Realistic for inference of MX-FP4-quantised LLMs.</td></tr>
+                <tr><td>Dense FP8 (E4M3 / E5M2)</td><td>~250 TFLOPS</td><td>Fine-tune workloads; FP8 inference for models without FP4 quants.</td></tr>
+                <tr><td>Dense BF16</td><td>~125 TFLOPS</td><td>Pretraining proxies; mixed-precision fine-tunes.</td></tr>
+                <tr><td>Dense TF32</td><td>~62 TFLOPS</td><td>Drop-in FP32 replacement; rarely used.</td></tr>
+                <tr><td>FP32 SIMT</td><td>~30 TFLOPS</td><td>Non-tensor-core kernels.</td></tr>
+                <tr><td>FP64 SIMT</td><td>~2 TFLOPS</td><td>HPC; low priority on a workstation.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="slide" id="slide-11">
+    <div class="slide-number">11</div>
+    <h2>Spark vs Other Workstations &mdash; Quick Look</h2>
+    <p>Detailed comparison is in <a href="https://brendanjameslynskey.github.io/NVIDIA_GPU_37_DGX_Spark_vs_Alternatives/">Deck 37</a>; here's the headline:</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Machine</th><th>Memory</th><th>BW</th><th>Compute</th><th>$ band</th><th>Wall power</th></tr></thead>
+            <tbody>
+                <tr><td><strong>DGX Spark</strong></td><td>128 GB unified</td><td>273 GB/s</td><td>~250 TF FP8</td><td>$3-5k</td><td>170 W</td></tr>
+                <tr><td>Mac Studio M3 Ultra (192 GB)</td><td>192 GB unified</td><td>819 GB/s</td><td>no FP8 / FP4</td><td>$5-8k</td><td>270 W</td></tr>
+                <tr><td>RTX 5090 PC</td><td>32 GB GDDR7</td><td>1792 GB/s</td><td>~1500 TF FP8</td><td>$4-5k</td><td>700 W</td></tr>
+                <tr><td>RTX PRO 6000 Blackwell PC</td><td>96 GB GDDR7</td><td>1792 GB/s</td><td>~1500 TF FP8</td><td>$10-12k</td><td>800 W</td></tr>
+                <tr><td>Cloud H100 1&times; / month</td><td>80 GB HBM3</td><td>3350 GB/s</td><td>1979 TF FP8</td><td>$2-3k/mo</td><td>700 W (theirs)</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p><strong>Spark's niche</strong>: the only desktop machine where 70 B-class models <em>fit</em> in unified memory at workstation prices, with the same software as datacenter NVIDIA. Bandwidth is its weakness; raw compute is decent; capacity is the win.</p>
+</section>
+
+<section class="slide" id="slide-12">
+    <div class="slide-number">12</div>
+    <h2>Interactive: Spark Capability Calculator</h2>
+    <div class="control-panel">
+        <div class="control-row">
+            <label for="sk-model">Model size</label>
+            <select id="sk-model">
+                <option value="7">7 B</option>
+                <option value="13">13 B</option>
+                <option value="32">32 B</option>
+                <option value="70" selected>70 B</option>
+                <option value="120">120 B (e.g. Llama-3.4-Nemotron)</option>
+                <option value="200">200 B</option>
+                <option value="405">405 B</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label for="sk-prec">Precision</label>
+            <select id="sk-prec">
+                <option value="fp16">BF16/FP16 (2.0 B/param)</option>
+                <option value="fp8" selected>FP8 (1.0 B/param)</option>
+                <option value="mxfp4">MX-FP4 (0.55 B/param incl. scale)</option>
+                <option value="awq">AWQ-INT4 (~0.6 B/param)</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label for="sk-pair">Pair two Sparks</label>
+            <select id="sk-pair">
+                <option value="1">single Spark (128 GB)</option>
+                <option value="2">two-Spark pair (256 GB)</option>
+            </select>
+        </div>
+        <div class="metric-grid">
+            <div class="metric"><div class="metric-label">Weight bytes</div><div class="metric-value" id="sk-bytes">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">Fits?</div><div class="metric-value" id="sk-fit">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">KV cache room (8k ctx)</div><div class="metric-value" id="sk-kv">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">Decode tok/s (single)</div><div class="metric-value" id="sk-tps">&mdash;</div></div>
+        </div>
+        <div id="sk-out" class="result-box"></div>
+    </div>
+    <script>
+    (function(){
+        const bytesPerParam = { fp16:2.0, fp8:1.0, mxfp4:0.55, awq:0.6 };
+        const bw = 273; // GB/s
+        function rec(){
+            const params = parseFloat(document.getElementById('sk-model').value);
+            const prec = document.getElementById('sk-prec').value;
+            const pair = parseInt(document.getElementById('sk-pair').value);
+            const bpp = bytesPerParam[prec];
+            const w = params * bpp; // GB
+            const cap = pair * 128;
+            const fits = w + 8 < cap; // leave 8 GB for OS/buffers
+            const kvRoom = Math.max(0, cap - w - 8);
+            const tps = fits ? Math.round((bw / w) * (pair === 2 ? 0.7 : 1.0)) : 0;
+            // pipeline parallel: two-Spark gives ~2x BW for streaming weights but adds inter-spark hop, hence 0.7x
+
+            document.getElementById('sk-bytes').textContent = w.toFixed(1) + ' GB';
+            document.getElementById('sk-fit').innerHTML = fits ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>';
+            document.getElementById('sk-kv').textContent = kvRoom.toFixed(1) + ' GB free';
+            document.getElementById('sk-tps').textContent = fits ? (tps + ' tok/s') : '&mdash;';
+            const note = fits
+                ? (tps > 5 ? 'Good fit: comfortable single-stream interactive latency.' : 'Fits but bandwidth-limited; consider MX-FP4 quantisation if not already.')
+                : 'Does not fit. ' + (pair === 1 ? 'Try the two-Spark pair selection.' : 'Even two Sparks lack capacity for this; rent a cloud GPU.');
+            document.getElementById('sk-out').innerHTML = '<div><span class="line-label">verdict</span> &rarr; <span class="line-val">' + note + '</span></div>';
+        }
+        ['sk-model','sk-prec','sk-pair'].forEach(id => document.getElementById(id).addEventListener('change', rec));
+        rec();
+    })();
+    </script>
+</section>
+<!-- ════════════════════════════════════ Footer ════════════════════════════════════ -->
+<footer class="footer">
+    <p>Part of the <a href="https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures">NVIDIA GPU Architectures Series</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;"><a href="https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures">Back to Series Index</a></p>
+</footer>
+
+<script>
+    // Smooth scroll for TOC links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Subtle fade-in on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.slide').forEach(slide => {
+        slide.style.opacity = '0';
+        slide.style.transform = 'translateY(30px)';
+        slide.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(slide);
+    });
+</script>
+
+</body>
+</html>
