@@ -817,7 +817,7 @@
             <tbody>
                 <tr><td>SoC</td><td><strong>NVIDIA GB10</strong> (Grace + Blackwell on one package)</td></tr>
                 <tr><td>CPU</td><td>20 ARM cores: 10&times; Cortex-X925 (perf) + 10&times; Cortex-A725 (efficiency)</td></tr>
-                <tr><td>GPU</td><td>Blackwell-class with 5th-gen tensor cores supporting MX-FP4 / MX-FP6 / FP8</td></tr>
+                <tr><td>GPU</td><td>Blackwell-class with 5th-gen tensor cores supporting NVFP4 / MX-FP4 / MX-FP6 / FP8</td></tr>
                 <tr><td>Memory</td><td><strong>128 GB unified LPDDR5x at ~273 GB/s</strong></td></tr>
                 <tr><td>Peak compute</td><td>~1 PFLOP sparse FP4 / ~500 TFLOPS dense FP4 / ~250 TFLOPS FP8</td></tr>
                 <tr><td>Storage</td><td>1 or 4 TB NVMe Gen5 SSD (slot, user-replaceable on some SKUs)</td></tr>
@@ -841,7 +841,7 @@
     <div class="hierarchy">
         <div class="hierarchy-level">
             <div class="hierarchy-label">Package</div>
-            <div class="hierarchy-items"><span class="hierarchy-item accent">GB10 SoC &mdash; ~250 mm&sup2;, TSMC 4NP, ARM Holdings + NVIDIA collaboration</span></div>
+            <div class="hierarchy-items"><span class="hierarchy-item accent">GB10 SoC &mdash; ~250 mm&sup2;, TSMC 4NP, MediaTek + NVIDIA collaboration</span></div>
         </div>
         <div class="hierarchy-level">
             <div class="hierarchy-label">CPU complex</div>
@@ -920,7 +920,7 @@
         </table>
     </div>
 
-    <p>Same CUDA compute capability as B200 (sm_100), so kernels compile once and run on both. <strong>FP4 enabled</strong> (unlike Ada consumer dies where it was fused off). The Spark GPU is best understood as &quot;a quarter of an RTX 5090 with 4&times; the memory&quot; &mdash; very different bandwidth/capacity profile.</p>
+    <p>Same Blackwell tensor-core feature set as B200, so kernels targeting Blackwell features compile once and run on both. <strong>FP4 enabled</strong> (Blackwell introduces FP4 tensor cores; prior Ada/Hopper generations have no native FP4 support). The Spark GPU is best understood as &quot;a quarter of an RTX 5090 with 4&times; the memory&quot; &mdash; very different bandwidth/capacity profile.</p>
 </section>
 
 <section class="slide" id="slide-05">
