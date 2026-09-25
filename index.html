@@ -911,10 +911,10 @@
             <thead><tr><th>Property</th><th>DGX Spark GPU</th><th>RTX 5090 (reference)</th><th>B200 (reference)</th></tr></thead>
             <tbody>
                 <tr><td>SMs (estimated)</td><td>~70</td><td>170</td><td>~256 (2 dies)</td></tr>
-                <tr><td>FP4 sparse TFLOPS</td><td>~1000</td><td>~3000</td><td>18000</td></tr>
-                <tr><td>FP8 dense TFLOPS</td><td>~250</td><td>~1500</td><td>4500</td></tr>
-                <tr><td>BF16 dense TFLOPS</td><td>~125</td><td>~750</td><td>2250</td></tr>
-                <tr><td>FP64 TFLOPS</td><td>~2</td><td>~3</td><td>40</td></tr>
+                <tr><td>FP4 sparse TFLOPS</td><td>~1000</td><td>~3350</td><td>18000</td></tr>
+                <tr><td>FP8 dense TFLOPS</td><td>~250</td><td>~840 (FP16 acc.) / ~420 (FP32 acc.)</td><td>4500</td></tr>
+                <tr><td>BF16 dense TFLOPS</td><td>~125</td><td>~210 (FP32 acc.)</td><td>2250</td></tr>
+                <tr><td>FP64 TFLOPS</td><td>~2</td><td>~1.6</td><td>40</td></tr>
                 <tr><td>Memory BW</td><td>273 GB/s (LPDDR5x)</td><td>1792 GB/s (GDDR7)</td><td>8 TB/s (HBM3e)</td></tr>
             </tbody>
         </table>
@@ -943,14 +943,14 @@
 <section class="slide" id="slide-06">
     <div class="slide-number">06</div>
     <h2>128 GB Unified LPDDR5x &mdash; The Headline Feature</h2>
-    <p>Spark's 128 GB is the largest unified memory pool you can buy in a desktop AI machine in 2026. For comparison: <strong>Apple Mac Studio M3 Ultra</strong> tops out at 192 GB but only ~819 GB/s; <strong>RTX 5090</strong> has 32 GB at 1.79 TB/s; <strong>RTX PRO 6000 Blackwell</strong> has 96 GB at 1.79 TB/s but costs much more.</p>
+    <p>Spark's 128 GB is not the largest unified pool on a desk &mdash; the <strong>Apple Mac Studio M3 Ultra</strong> goes up to 512 GB at ~819 GB/s, and AMD Strix Halo mini-PCs also offer 128 GB &mdash; but it is the largest unified pool that runs the full CUDA stack with Blackwell FP4 tensor cores. For comparison: <strong>RTX 5090</strong> has 32 GB at 1.79 TB/s; <strong>RTX PRO 6000 Blackwell</strong> has 96 GB at 1.79 TB/s but costs much more.</p>
 
     <div class="table-wrap">
         <table>
             <thead><tr><th>Memory characteristic</th><th>Spark</th><th>Notes</th></tr></thead>
             <tbody>
                 <tr><td>Capacity</td><td><strong>128 GB</strong> (single SKU at launch)</td><td>Soldered LPDDR5x, not user-upgradable</td></tr>
-                <tr><td>Bandwidth</td><td>~273 GB/s</td><td>~17% of an RTX 5090, ~3.4% of a B200</td></tr>
+                <tr><td>Bandwidth</td><td>~273 GB/s</td><td>~15% of an RTX 5090, ~3.4% of a B200</td></tr>
                 <tr><td>Pin rate</td><td>~9.6 Gbps/pin LPDDR5x</td><td>32-bit channels, multi-channel</td></tr>
                 <tr><td>ECC</td><td>On-die ECC (LPDDR5x ECC mode)</td><td>Side-band ECC not available on LPDDR</td></tr>
                 <tr><td>Voltage</td><td>1.05 V</td><td>Same spec as Grace 480 GB on GB200</td></tr>
@@ -1052,10 +1052,10 @@
             <thead><tr><th>Machine</th><th>Memory</th><th>BW</th><th>Compute</th><th>$ band</th><th>Wall power</th></tr></thead>
             <tbody>
                 <tr><td><strong>DGX Spark</strong></td><td>128 GB unified</td><td>273 GB/s</td><td>~250 TF FP8</td><td>$3-5k</td><td>170 W</td></tr>
-                <tr><td>Mac Studio M3 Ultra (192 GB)</td><td>192 GB unified</td><td>819 GB/s</td><td>no FP8 / FP4</td><td>$5-8k</td><td>270 W</td></tr>
-                <tr><td>RTX 5090 PC</td><td>32 GB GDDR7</td><td>1792 GB/s</td><td>~1500 TF FP8</td><td>$4-5k</td><td>700 W</td></tr>
-                <tr><td>RTX PRO 6000 Blackwell PC</td><td>96 GB GDDR7</td><td>1792 GB/s</td><td>~1500 TF FP8</td><td>$10-12k</td><td>800 W</td></tr>
-                <tr><td>Cloud H100 1&times; / month</td><td>80 GB HBM3</td><td>3350 GB/s</td><td>1979 TF FP8</td><td>$2-3k/mo</td><td>700 W (theirs)</td></tr>
+                <tr><td>Mac Studio M3 Ultra</td><td>96&ndash;512 GB unified</td><td>819 GB/s</td><td>no FP8 / FP4</td><td>$4-10k</td><td>270 W</td></tr>
+                <tr><td>RTX 5090 PC</td><td>32 GB GDDR7</td><td>1792 GB/s</td><td>~420&ndash;840 TF FP8</td><td>$4-5k</td><td>700 W</td></tr>
+                <tr><td>RTX PRO 6000 Blackwell PC</td><td>96 GB GDDR7</td><td>1792 GB/s</td><td>~1000 TF FP8</td><td>$10-12k</td><td>800 W</td></tr>
+                <tr><td>Cloud H100 1&times; / month</td><td>80 GB HBM3</td><td>3350 GB/s</td><td>~990 TF FP8</td><td>$2-3k/mo</td><td>700 W (theirs)</td></tr>
             </tbody>
         </table>
     </div>
