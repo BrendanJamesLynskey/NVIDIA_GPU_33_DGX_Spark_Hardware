@@ -821,11 +821,11 @@
                 <tr><td>Memory</td><td><strong>128 GB unified LPDDR5x at ~273 GB/s</strong></td></tr>
                 <tr><td>Peak compute</td><td>~1 PFLOP sparse FP4 / ~500 TFLOPS dense FP4 / ~250 TFLOPS FP8</td></tr>
                 <tr><td>Storage</td><td>1 or 4 TB NVMe Gen5 SSD (slot, user-replaceable on some SKUs)</td></tr>
-                <tr><td>Networking</td><td>1&times; ConnectX-7 200 GbE port (RJ-45 not used; QSFP28 / OCP NIC variant) + Wi-Fi 7 + 1 GbE management</td></tr>
-                <tr><td>Display</td><td>1&times; HDMI 2.1, 1&times; DisplayPort 2.1 (some SKUs swap for USB-C DP-Alt)</td></tr>
-                <tr><td>USB</td><td>4&times; USB4 / Thunderbolt-class</td></tr>
-                <tr><td>System TDP</td><td>~170 W</td></tr>
-                <tr><td>Chassis</td><td>~150&times;150&times;50 mm (sub-1 L), ~1.4 kg</td></tr>
+                <tr><td>Networking</td><td>ConnectX-7 with 2&times; QSFP ports (200 Gb/s) + 1&times; 10 GbE RJ-45 + Wi-Fi 7</td></tr>
+                <tr><td>Display</td><td>1&times; HDMI 2.1a (no DisplayPort)</td></tr>
+                <tr><td>USB</td><td>4&times; USB Type-C (one is the power input)</td></tr>
+                <tr><td>System TDP</td><td>GB10 SoC 140 W; 240 W power supply</td></tr>
+                <tr><td>Chassis</td><td>~150&times;150&times;50 mm (sub-1 L), ~1.2 kg</td></tr>
                 <tr><td>Price</td><td>~$3,000&ndash;$4,500 depending on SSD</td></tr>
                 <tr><td>OS</td><td>DGX OS (Ubuntu-based ARM64)</td></tr>
             </tbody>
@@ -861,7 +861,7 @@
         </div>
         <div class="hierarchy-level">
             <div class="hierarchy-label">IO</div>
-            <div class="hierarchy-items"><span class="hierarchy-item">PCIe 5 root complex</span><span class="hierarchy-item">USB4</span><span class="hierarchy-item">DP/HDMI</span></div>
+            <div class="hierarchy-items"><span class="hierarchy-item">PCIe 5 root complex</span><span class="hierarchy-item">USB-C</span><span class="hierarchy-item">HDMI</span></div>
         </div>
     </div>
 
@@ -904,13 +904,13 @@
 <section class="slide" id="slide-04">
     <div class="slide-number">04</div>
     <h2>The GPU &mdash; A Trimmed-Down Blackwell</h2>
-    <p>The Spark GPU is the <strong>same Blackwell architecture</strong> as B200 / RTX 5090 but with much fewer SMs, sized for the 170 W system envelope.</p>
+    <p>The Spark GPU is the <strong>same Blackwell architecture</strong> as B200 / RTX 5090 but with much fewer SMs, sized for the GB10's 140 W envelope.</p>
 
     <div class="table-wrap">
         <table>
             <thead><tr><th>Property</th><th>DGX Spark GPU</th><th>RTX 5090 (reference)</th><th>B200 (reference)</th></tr></thead>
             <tbody>
-                <tr><td>SMs (estimated)</td><td>~70</td><td>170</td><td>~256 (2 dies)</td></tr>
+                <tr><td>SMs</td><td>48 (6,144 CUDA cores)</td><td>170</td><td>148 (2 dies)</td></tr>
                 <tr><td>FP4 sparse TFLOPS</td><td>~1000</td><td>~3350</td><td>18000</td></tr>
                 <tr><td>FP8 dense TFLOPS</td><td>~250</td><td>~840 (FP16 acc.) / ~420 (FP32 acc.)</td><td>4500</td></tr>
                 <tr><td>BF16 dense TFLOPS</td><td>~125</td><td>~210 (FP32 acc.)</td><td>2250</td></tr>
@@ -951,7 +951,7 @@
             <tbody>
                 <tr><td>Capacity</td><td><strong>128 GB</strong> (single SKU at launch)</td><td>Soldered LPDDR5x, not user-upgradable</td></tr>
                 <tr><td>Bandwidth</td><td>~273 GB/s</td><td>~15% of an RTX 5090, ~3.4% of a B200</td></tr>
-                <tr><td>Pin rate</td><td>~9.6 Gbps/pin LPDDR5x</td><td>32-bit channels, multi-channel</td></tr>
+                <tr><td>Pin rate</td><td>8.533 Gbps/pin (LPDDR5x-8533)</td><td>256-bit interface</td></tr>
                 <tr><td>ECC</td><td>On-die ECC (LPDDR5x ECC mode)</td><td>Side-band ECC not available on LPDDR</td></tr>
                 <tr><td>Voltage</td><td>1.05 V</td><td>Same spec as Grace 480 GB on GB200</td></tr>
             </tbody>
@@ -970,19 +970,16 @@
     <ul>
         <li><strong>NVMe Gen5</strong>: 1 TB or 4 TB SKU; M.2 2280 slot (user-replaceable on the high-tier SKU). Sustained ~12 GB/s read.</li>
         <li><strong>HDMI 2.1</strong>: up to 8K60 / 4K240 with DSC. Single port on most Spark configs.</li>
-        <li><strong>DisplayPort 2.1</strong> (UHBR20): up to 16K60 with DSC. One port (some SKUs swap for USB-C DP-Alt).</li>
-        <li><strong>USB4 / Thunderbolt-class</strong>: 4 ports on the front, 40 Gb/s each. eGPU not officially supported but technically possible (CUDA driver enumerates external Blackwell parts).</li>
+        <li><strong>USB Type-C</strong>: 4 ports, one of which takes the power input. eGPU not officially supported but technically possible (CUDA driver enumerates external Blackwell parts).</li>
         <li><strong>Wi-Fi 7</strong>: integrated 6 GHz radio for headless deployment.</li>
-        <li><strong>1 GbE management port</strong>: for BMC / IPMI-equivalent.</li>
-        <li><strong>3.5 mm audio</strong>: combo jack.</li>
-        <li><strong>SD card</strong>: full-size SD UHS-II on some SKUs (legacy from DIGITS prototypes).</li>
+        <li><strong>10 GbE RJ-45 port</strong>: ordinary wired Ethernet.</li>
     </ul>
 </section>
 
 <section class="slide" id="slide-08">
     <div class="slide-number">08</div>
     <h2>200 GbE ConnectX-7 &mdash; The Pairing Port</h2>
-    <p>The most unusual port on Spark is the <strong>QSFP28 ConnectX-7 200 GbE port</strong>, intended for <strong>two-Spark pairing</strong>. NVIDIA's reference scenario is direct attach: two Spark units connected by a 1-3 m DAC or AOC cable, behaving like a tiny 256 GB / 2-PFLOP cluster.</p>
+    <p>The most unusual port on Spark is the <strong>ConnectX-7 200 Gb/s NIC with two QSFP ports</strong>, intended for <strong>two-Spark pairing</strong>. NVIDIA's reference scenario is direct attach: two Spark units connected by a 1-3 m DAC or AOC cable, behaving like a tiny 256 GB / 2-PFLOP cluster.</p>
 
     <div class="diagram-grid cols-2">
         <div class="diagram-panel accent-border">
@@ -1002,7 +999,7 @@
 
     <div class="callout">
         <div class="callout-label">Why not Ethernet RJ-45?</div>
-        <p>QSFP28 lets the same port carry InfiniBand, Ethernet, or RoCE depending on the cable plugged in. A single Spark connected to a Quantum-2 switch becomes a node in a small InfiniBand cluster. NVIDIA's intent: bottom of the same software stack as their datacenter products.</p>
+        <p>QSFP lets the same port carry InfiniBand, Ethernet, or RoCE depending on the cable plugged in. A single Spark connected to a Quantum-2 switch becomes a node in a small InfiniBand cluster. NVIDIA's intent: bottom of the same software stack as their datacenter products.</p>
     </div>
 </section>
 
@@ -1010,15 +1007,15 @@
     <div class="slide-number">09</div>
     <h2>Power Delivery, Cooling, Form Factor</h2>
     <ul>
-        <li><strong>System TDP ~170 W.</strong> External 240 W power brick (USB-C PD on some SKUs, barrel jack on others).</li>
+        <li><strong>GB10 TDP 140 W</strong>, with 100 W left for the rest of the system from the external 240 W power brick (USB-C input).</li>
         <li><strong>VRM</strong>: ~6-phase digital PWM for the GB10 core rail (target 0.85&ndash;1.0 V at hundreds of amps), plus separate VDDQ-LPDDR5x (1.05 V) and VDDIO (0.65 V) rails.</li>
         <li><strong>Cooling</strong>: small vapour chamber + axial fan. Quiet at idle (&lt; 30 dBA), noticeable under sustained load (~45 dBA). The chassis is <em>tight</em> on thermals; long inference jobs throttle slightly after 10-15 minutes.</li>
         <li><strong>Acoustic</strong>: typical fan profile is conservative for office use; a sustained 70 B inference run shifts to a higher RPM step.</li>
-        <li><strong>Chassis</strong>: machined aluminium top with magnetic dust filters. ~1.4 kg, sub-1 litre. Stackable with rubber feet.</li>
+        <li><strong>Chassis</strong>: machined aluminium top with magnetic dust filters. ~1.2 kg, sub-1 litre. Stackable with rubber feet.</li>
         <li><strong>VESA mount</strong>: optional bracket for behind-monitor deployment.</li>
     </ul>
 
-    <p>Compared to: a single RTX 5090 PC pulls 700-900 W at the wall under load &mdash; <strong>4-5&times; Spark's power draw</strong>. For office or small-lab deployment, that's the difference between &quot;just plug it in&quot; and &quot;dedicated 20 A circuit&quot;.</p>
+    <p>Compared to: a single RTX 5090 PC pulls 700-900 W at the wall under load &mdash; <strong>3-4&times; Spark's 240 W maximum</strong>. For office or small-lab deployment, that's the difference between &quot;just plug it in&quot; and &quot;dedicated 20 A circuit&quot;.</p>
 </section>
 
 <section class="slide" id="slide-10">
@@ -1051,7 +1048,7 @@
         <table>
             <thead><tr><th>Machine</th><th>Memory</th><th>BW</th><th>Compute</th><th>$ band</th><th>Wall power</th></tr></thead>
             <tbody>
-                <tr><td><strong>DGX Spark</strong></td><td>128 GB unified</td><td>273 GB/s</td><td>~250 TF FP8</td><td>$3-5k</td><td>170 W</td></tr>
+                <tr><td><strong>DGX Spark</strong></td><td>128 GB unified</td><td>273 GB/s</td><td>~250 TF FP8</td><td>$3-5k</td><td>&le; 240 W</td></tr>
                 <tr><td>Mac Studio M3 Ultra</td><td>96&ndash;512 GB unified</td><td>819 GB/s</td><td>no FP8 / FP4</td><td>$4-10k</td><td>270 W</td></tr>
                 <tr><td>RTX 5090 PC</td><td>32 GB GDDR7</td><td>1792 GB/s</td><td>~420&ndash;840 TF FP8</td><td>$4-5k</td><td>700 W</td></tr>
                 <tr><td>RTX PRO 6000 Blackwell PC</td><td>96 GB GDDR7</td><td>1792 GB/s</td><td>~1000 TF FP8</td><td>$10-12k</td><td>800 W</td></tr>
@@ -1074,7 +1071,7 @@
                 <option value="13">13 B</option>
                 <option value="32">32 B</option>
                 <option value="70" selected>70 B</option>
-                <option value="120">120 B (e.g. Llama-3.4-Nemotron)</option>
+                <option value="120">120 B (e.g. gpt-oss-120b)</option>
                 <option value="200">200 B</option>
                 <option value="405">405 B</option>
             </select>
